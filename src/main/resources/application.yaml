@@ -1,7 +1,7 @@
 kafka:
   brokers: "164.52.202.184:9092"
   topic: "entity-change-events-1"
-  groupId: "flink-cdc-group-12"
+  groupId: "flink-cdc-group-123"
   readFromEarliest: false
 
 iceberg:
@@ -11,4 +11,4 @@ iceberg:
   io-impl: "org.apache.iceberg.aws.s3.S3FileIO"
   aws-region: "ap-south-1"
   database: "iceberg_db_test"
-  table: "ck_orders111111123"
+  table: "ck_orders_iceberg"

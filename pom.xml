@@ -19,7 +19,9 @@
         <flink.kafka.connector.version>3.3.0-1.19</flink.kafka.connector.version>
         <lombok.version>1.18.30</lombok.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <jackson.version>2.15.2</jackson.version>  <!-- ✅ Added -->
+        <jackson.version>2.15.2</jackson.version>
+        <!-- Flink scope: 'compile' for local, 'provided' for AWS -->
+        <flink.scope>compile</flink.scope>
     </properties>
 
     <dependencies>
@@ -28,6 +30,7 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-json</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
         <!-- Flink Streaming API -->
@@ -35,6 +38,7 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-streaming-java</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
         <!-- Flink Clients -->
@@ -42,6 +46,7 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-clients</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
         <!-- Flink Kafka Connector -->
@@ -51,31 +56,30 @@
             <version>${flink.kafka.connector.version}</version>
         </dependency>
 
-        <!-- Flink Table API (for RowData, StringData, etc.) -->
+        <!-- Flink Table API -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-api-java-bridge</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-common</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
-        <!-- Flink Table Runtime (needed for SortedMapTypeInfo used by Iceberg) -->
+        <!-- Flink Table Runtime -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-runtime</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.iceberg</groupId>
-            <artifactId>iceberg-core</artifactId>
-            <version>1.5.2</version>
-        </dependency>
+        <!-- REMOVED: iceberg-core is included in iceberg-flink-runtime -->
 
         <!-- Iceberg AWS S3 integration (works for MinIO with S3A) -->
         <dependency>
@@ -91,39 +95,53 @@
             <version>1.6.1</version>
         </dependency>
 
+        <!-- REMOVED: iceberg-hive-runtime conflicts with iceberg-flink-runtime -->
+        <!-- REMOVED: hadoop-aws - using S3FileIO instead of S3A -->
 
-        <!-- Runtime support for catalog -->
-        <dependency>
-            <groupId>org.apache.iceberg</groupId>
-            <artifactId>iceberg-hive-runtime</artifactId>
-            <version>1.5.2</version>
-        </dependency>
-
-        <!-- Hadoop S3A filesystem -->
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-            <version>3.3.5</version>
-        </dependency>
-
-        <!-- Logging (optional but useful) -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.36</version>
-        </dependency>
-        <!-- Hadoop Common (needed for Configuration class) -->
+        <!-- Hadoop Common (needed for Configuration class in CatalogLoader) -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>3.3.5</version>
-        </dependency>
-
-        <!-- Hadoop AWS: S3A filesystem (needed for MinIO) -->
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-            <version>3.3.5</version>
+            <exclusions>
+                <!-- Exclude heavy transitive deps to reduce JAR size -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.zookeeper</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kerby</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.reload4j</groupId>
+                    <artifactId>reload4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -133,11 +151,12 @@
         </dependency>
 
 
-        <!-- Logging helps with debugging -->
+        <!-- Logging (single instance) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.36</version>
+            <scope>runtime</scope>
         </dependency>
 
 
@@ -173,6 +192,7 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-base</artifactId>
             <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
         </dependency>
     </dependencies>
 
@@ -229,4 +249,26 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Maven Profiles for Local vs AWS builds -->
+    <profiles>
+        <!-- Default: Local development (includes all Flink deps) -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <flink.scope>compile</flink.scope>
+            </properties>
+        </profile>
+
+        <!-- AWS: For deployment to AWS Managed Flink (smaller JAR) -->
+        <profile>
+            <id>aws</id>
+            <properties>
+                <flink.scope>provided</flink.scope>
+            </properties>
+        </profile>
+    </profiles>
 </project>

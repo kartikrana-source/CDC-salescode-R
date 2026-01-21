@@ -162,12 +162,26 @@ iceberg:
 ```bash
 # 1. Login to AWS SSO
 aws sso login --profile default
+```
 
-# 2. Build the project
+### Build
+
+**For local development:**
+```bash
 mvn clean package -DskipTests
 ```
 
-### Run
+**For AWS Managed Flink deployment:**
+```bash
+mvn clean package -DskipTests -Paws
+```
+
+| Profile | JAR Size | Use Case |
+|---------|----------|----------|
+| `local` (default) | ~490MB | Running locally or from IDE |
+| `aws` (`-Paws`) | ~107MB | Deploying to AWS Managed Flink |
+
+### Run Locally
 ```bash
 # Using Maven
 mvn exec:java -Dexec.mainClass="com.salescode.Main"
@@ -175,6 +189,12 @@ mvn exec:java -Dexec.mainClass="com.salescode.Main"
 # Or using JAR
 java -jar target/flink-iceberg-pipeline-1.0-SNAPSHOT.jar
 ```
+
+### Deploy to AWS Managed Flink
+1. Build with AWS profile: `mvn clean package -DskipTests -Paws`
+2. Upload `target/flink-iceberg-pipeline-1.0-SNAPSHOT.jar` to S3
+3. Create AWS Managed Flink application pointing to the S3 JAR
+4. Ensure the IAM execution role has permissions for Glue, S3, and Kafka
 
 ## Querying Data in Athena
 

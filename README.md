@@ -180,9 +180,9 @@ java -jar target/flink-iceberg-pipeline-1.0-SNAPSHOT.jar
 
 ### Get all orders (with partition pruning)
 ```sql
--- Scans only FMCG partition
+-- Scans only simamy partition
 SELECT * FROM iceberg_db_test.ck_orders 
-WHERE lob = 'FMCG' 
+WHERE lob = 'simamy' 
 LIMIT 100;
 ```
 
@@ -190,7 +190,7 @@ LIMIT 100;
 ```sql
 -- Scans: 1 LOB + 1 month = minimal data scan
 SELECT * FROM iceberg_db_test.ck_orders 
-WHERE lob = 'FMCG' 
+WHERE lob = 'simamy' 
   AND creation_time BETWEEN TIMESTAMP '2026-01-01 00:00:00' 
                         AND TIMESTAMP '2026-01-31 23:59:59';
 ```
@@ -201,7 +201,7 @@ WITH ranked AS (
     SELECT *, 
            ROW_NUMBER() OVER (PARTITION BY id ORDER BY ingestion_time DESC) as rn
     FROM iceberg_db_test.ck_orders
-    WHERE lob = 'FMCG'  -- Add LOB filter for performance
+    WHERE lob = 'simamy'  -- Add LOB filter for performance
 )
 SELECT * FROM ranked WHERE rn = 1;
 ```

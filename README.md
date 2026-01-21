@@ -97,7 +97,7 @@ lob (identity) → bucket(16, id) → year(creation_time) → month(creation_tim
 ### S3 Folder Structure
 ```
 s3://warehouse/ck_orders/
-├── lob=FMCG/
+├── lob=simamy/
 │   ├── id_bucket=0/
 │   │   ├── creation_time_year=2026/
 │   │   │   ├── creation_time_month=01/
@@ -107,9 +107,9 @@ s3://warehouse/ck_orders/
 │   ├── id_bucket=1/
 │   │   └── ...
 │   └── id_bucket=15/
-├── lob=PHARMA/
+├── lob=simasg/
 │   └── ...
-└── lob=RETAIL/
+└── lob=niine/
     └── ...
 ```
 

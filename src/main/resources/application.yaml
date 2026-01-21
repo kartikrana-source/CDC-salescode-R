@@ -1,0 +1,14 @@
+kafka:
+  brokers: "164.52.202.184:9092"
+  topic: "entity-change-events-1"
+  groupId: "flink-cdc-group-12"
+  readFromEarliest: false
+
+iceberg:
+  warehouse: "s3://sc-developer-bucket/iceberg_db_test.db"
+  catalog-name: "glue_catalog"
+  catalog-type: "glue"
+  io-impl: "org.apache.iceberg.aws.s3.S3FileIO"
+  aws-region: "ap-south-1"
+  database: "iceberg_db_test"
+  table: "ck_orders111111123"

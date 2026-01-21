@@ -149,10 +149,19 @@ public class CreateIcebergTables {
                 // Ingestion tracking - use this to find latest record per order
                 Types.NestedField.required(56, "ingestion_time", Types.TimestampType.withoutZone()));
 
-        // No partitioning as per requirements
-        PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        // Multi-level partitioning:
+        // lob (identity) → bucket(16, id) → y=YYYY / m=MM from creation_time
+        // Result:
+        // s3://warehouse/ck_orders/lob=FMCG/id_bucket=0/creation_time_year=2026/creation_time_month=01/
+        PartitionSpec partitionSpec = PartitionSpec.builderFor(schema)
+                .identity("lob") // Level 1: Line of Business
+                .bucket("id", 16) // Level 2: Bucket by entity ID (16 buckets)
+                .year("creation_time") // Level 3: Year partition (y=YYYY)
+                .month("creation_time") // Level 4: Month partition (m=MM)
+                .build();
 
         catalog.createTable(tableId, schema, partitionSpec, TABLE_PROPERTIES);
-        log.info("✔ Created Iceberg v2 table: {}.{} (56 columns with ingestion_time, unpartitioned)", database, table);
+        log.info("✔ Created Iceberg v2 table: {}.{} (56 columns, partitioned by LOB/bucket(16,id)/year/month)",
+                database, table);
     }
 }

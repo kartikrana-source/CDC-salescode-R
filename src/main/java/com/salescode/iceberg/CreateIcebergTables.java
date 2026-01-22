@@ -156,9 +156,10 @@ public class CreateIcebergTables {
         PartitionSpec partitionSpec = PartitionSpec.builderFor(schema)
                 .identity("lob") // Level 1: Line of Business
                 .bucket("id", 16) // Level 2: Bucket by entity ID (16 buckets)
-                .year("creation_time") // Level 3: Year partition (y=YYYY)
-                .month("creation_time") // Level 4: Month partition (m=MM)
+                .year("creation_time")
                 .build();
+              // Level 3: Year partition (y=YYYY)
+              // Level 4: Month partition (m=MM)
 
         catalog.createTable(tableId, schema, partitionSpec, TABLE_PROPERTIES);
         log.info("✔ Created Iceberg v2 table: {}.{} (56 columns, partitioned by LOB/bucket(16,id)/year/month)",

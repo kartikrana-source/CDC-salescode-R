@@ -1,7 +1,7 @@
 kafka:
   brokers: "164.52.202.184:9092"
   topic: "entity-change-events-1"
-  groupId: "flink-cdc-group-122222222kkl-"
+  groupId: "flink-cdc-group-122222222kkl--000"
   readFromEarliest: false
 
 iceberg:

@@ -149,20 +149,17 @@ public class CreateIcebergTables {
                 // Ingestion tracking - use this to find latest record per order
                 Types.NestedField.required(56, "ingestion_time", Types.TimestampType.withoutZone()));
 
-        // Multi-level partitioning:
-        // lob (identity) → bucket(16, id) → y=YYYY / m=MM from creation_time
-        // Result:
-        // s3://warehouse/ck_orders/lob=FMCG/id_bucket=0/creation_time_year=2026/creation_time_month=01/
+        // Partitioning: bucket(16, id) → year from creation_time
+        // LOB partitioning removed since tables are already separated by LOB
+        // (ck_orders_{lob})
+        // Result: s3://warehouse/ck_orders_{lob}/id_bucket=0/creation_time_year=2026/
         PartitionSpec partitionSpec = PartitionSpec.builderFor(schema)
-                .identity("lob") // Level 1: Line of Business
-                .bucket("id", 16) // Level 2: Bucket by entity ID (16 buckets)
-                .year("creation_time")
+                .bucket("id", 16) // Level 1: Bucket by entity ID (16 buckets)
+                .year("creation_time") // Level 2: Year partition (y=YYYY)
                 .build();
-        // Level 3: Year partition (y=YYYY)
-        // Level 4: Month partition (m=MM)
 
         catalog.createTable(tableId, schema, partitionSpec, TABLE_PROPERTIES);
-        log.info("✔ Created Iceberg v2 table: {}.{} (56 columns, partitioned by LOB/bucket(16,id)/year/month)",
+        log.info("✔ Created Iceberg v2 table: {}.{} (56 columns, partitioned by bucket(16,id)/year)",
                 database, table);
     }
 
@@ -280,12 +277,13 @@ public class CreateIcebergTables {
 
     /**
      * Get the standard partition spec for orders tables.
+     * LOB partition removed since tables are already separated by LOB dynamically
+     * (ck_orders_{lob}).
      */
     public static PartitionSpec getOrdersPartitionSpec(Schema schema) {
         return PartitionSpec.builderFor(schema)
-                .identity("lob")
-                .bucket("id", 16)
-                .year("creation_time")
+                .bucket("id", 16) // Bucket by entity ID (16 buckets)
+                .year("creation_time") // Year partition
                 .build();
     }
 }

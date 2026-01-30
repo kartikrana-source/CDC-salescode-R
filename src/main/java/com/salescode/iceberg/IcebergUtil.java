@@ -48,4 +48,19 @@ public class IcebergUtil {
         log.info("Loading table from Glue Catalog: {}.{}", icebergConfig.getDatabase(), icebergConfig.getTable());
         return TableLoader.fromCatalog(catalogLoader, tableId);
     }
+
+    /**
+     * Create a TableLoader for a table with a custom name (dynamic LOB routing).
+     * Used by DynamicLobSink to create loaders for ck_orders_{lob} tables.
+     * 
+     * @param icebergConfig Iceberg configuration
+     * @param tableName     Custom table name (e.g., "ck_orders_niineuat")
+     * @return TableLoader for the specified table
+     */
+    public static TableLoader tableLoader(IcebergConfig icebergConfig, String tableName) {
+        CatalogLoader catalogLoader = glueCatalogLoader(icebergConfig);
+        TableIdentifier tableId = TableIdentifier.of(icebergConfig.getDatabase(), tableName);
+        log.info("Loading dynamic table from Glue Catalog: {}.{}", icebergConfig.getDatabase(), tableName);
+        return TableLoader.fromCatalog(catalogLoader, tableId);
+    }
 }

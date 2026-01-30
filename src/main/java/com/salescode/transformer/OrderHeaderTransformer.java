@@ -25,6 +25,9 @@ public class OrderHeaderTransformer implements FlatMapFunction<ObjectNode, Objec
             return;
         }
 
+        // Extract root-level LOB for routing (used by DynamicLobSink)
+        String rootLob = text(event, "lob");
+
         for (int i = 0; i < features.size(); i++) {
             ObjectNode feature = (ObjectNode) features.get(i);
             ObjectNode row = mapper.createObjectNode();
@@ -44,7 +47,8 @@ public class OrderHeaderTransformer implements FlatMapFunction<ObjectNode, Objec
             row.put("system_time", text(feature, "systemTime"));
 
             // 9-11. Business Fields
-            row.put("lob", text(feature, "lob"));
+            // Use ROOT-level LOB for routing, not feature-level
+            row.put("lob", rootLob);
             row.put("version", intVal(feature, "version"));
             row.put("source", text(feature, "source"));
 

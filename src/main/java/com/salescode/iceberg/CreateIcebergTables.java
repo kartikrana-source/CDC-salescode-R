@@ -158,11 +158,134 @@ public class CreateIcebergTables {
                 .bucket("id", 16) // Level 2: Bucket by entity ID (16 buckets)
                 .year("creation_time")
                 .build();
-              // Level 3: Year partition (y=YYYY)
-              // Level 4: Month partition (m=MM)
+        // Level 3: Year partition (y=YYYY)
+        // Level 4: Month partition (m=MM)
 
         catalog.createTable(tableId, schema, partitionSpec, TABLE_PROPERTIES);
         log.info("✔ Created Iceberg v2 table: {}.{} (56 columns, partitioned by LOB/bucket(16,id)/year/month)",
                 database, table);
+    }
+
+    /**
+     * Create orders table with a custom name (for dynamic LOB routing).
+     * Creates table as ck_orders_{lob} with the same schema.
+     * 
+     * @param catalog       Iceberg catalog
+     * @param icebergConfig Iceberg configuration
+     * @param tableName     Custom table name (e.g., "ck_orders_niineuat")
+     */
+    public static void createOrdersTableWithName(Catalog catalog, IcebergConfig icebergConfig, String tableName) {
+        String database = icebergConfig.getDatabase();
+        TableIdentifier tableId = TableIdentifier.of(database, tableName);
+
+        if (catalog.tableExists(tableId)) {
+            log.info("✔ Table {}.{} already exists. Skipping.", database, tableName);
+            return;
+        }
+
+        Schema schema = getOrdersSchema();
+        PartitionSpec partitionSpec = getOrdersPartitionSpec(schema);
+
+        catalog.createTable(tableId, schema, partitionSpec, TABLE_PROPERTIES);
+        log.info("✔ Created dynamic Iceberg table: {}.{} (56 columns)", database, tableName);
+    }
+
+    /**
+     * Get the standard orders table schema (56 columns).
+     */
+    public static Schema getOrdersSchema() {
+        return new Schema(
+                // Primary Key
+                Types.NestedField.required(1, "id", Types.StringType.get()),
+
+                // Status Fields
+                Types.NestedField.optional(2, "active_status", Types.StringType.get()),
+                Types.NestedField.optional(3, "active_status_reason", Types.StringType.get()),
+
+                // Audit Fields
+                Types.NestedField.optional(4, "created_by", Types.StringType.get()),
+                Types.NestedField.optional(5, "creation_time", Types.TimestampType.withoutZone()),
+                Types.NestedField.optional(6, "last_modified_time", Types.TimestampType.withoutZone()),
+                Types.NestedField.optional(7, "modified_by", Types.StringType.get()),
+                Types.NestedField.optional(8, "system_time", Types.TimestampType.withoutZone()),
+
+                // Business Fields
+                Types.NestedField.optional(9, "lob", Types.StringType.get()),
+                Types.NestedField.optional(10, "version", Types.IntegerType.get()),
+                Types.NestedField.optional(11, "source", Types.StringType.get()),
+                Types.NestedField.optional(12, "bill_amount", Types.DoubleType.get()),
+                Types.NestedField.optional(13, "net_amount", Types.DoubleType.get()),
+                Types.NestedField.optional(14, "total_amount", Types.DoubleType.get()),
+                Types.NestedField.optional(15, "total_initial_amt", Types.DoubleType.get()),
+                Types.NestedField.optional(16, "total_initial_quantity", Types.FloatType.get()),
+                Types.NestedField.optional(17, "total_mrp", Types.DoubleType.get()),
+                Types.NestedField.optional(18, "total_quantity", Types.FloatType.get()),
+                Types.NestedField.optional(19, "normalized_quantity", Types.FloatType.get()),
+                Types.NestedField.optional(20, "initial_normalized_quantity", Types.FloatType.get()),
+                Types.NestedField.optional(21, "normalized_volume", Types.FloatType.get()),
+                Types.NestedField.optional(22, "line_count", Types.IntegerType.get()),
+
+                // Order Identifiers
+                Types.NestedField.optional(23, "order_number", Types.StringType.get()),
+                Types.NestedField.optional(24, "reference_number", Types.StringType.get()),
+                Types.NestedField.optional(25, "reference_order_number", Types.StringType.get()),
+                Types.NestedField.optional(26, "remarks", Types.StringType.get()),
+                Types.NestedField.optional(27, "ship_id", Types.StringType.get()),
+
+                // Location & Hierarchy
+                Types.NestedField.optional(28, "location_hierarchy", Types.StringType.get()),
+                Types.NestedField.optional(29, "outletcode", Types.StringType.get()),
+                Types.NestedField.optional(30, "supplierid", Types.StringType.get()),
+                Types.NestedField.optional(31, "hierarchy", Types.StringType.get()),
+                Types.NestedField.optional(32, "user_hierarchy", Types.StringType.get()),
+
+                // GPS
+                Types.NestedField.optional(33, "gps_latitude", Types.StringType.get()),
+                Types.NestedField.optional(34, "gps_longitude", Types.StringType.get()),
+
+                // Type & Status
+                Types.NestedField.optional(35, "type", Types.StringType.get()),
+                Types.NestedField.optional(36, "sub_type", Types.StringType.get()),
+                Types.NestedField.optional(37, "status", Types.StringType.get()),
+                Types.NestedField.optional(38, "status_reason", Types.StringType.get()),
+                Types.NestedField.optional(39, "processing_status", Types.StringType.get()),
+                Types.NestedField.optional(40, "channel", Types.StringType.get()),
+
+                // Dates
+                Types.NestedField.optional(41, "delivery_date", Types.TimestampType.withoutZone()),
+                Types.NestedField.optional(42, "sales_date", Types.TimestampType.withoutZone()),
+
+                // Beat Info
+                Types.NestedField.optional(43, "beat", Types.StringType.get()),
+                Types.NestedField.optional(44, "beat_name", Types.StringType.get()),
+                Types.NestedField.optional(45, "in_beat", Types.BooleanType.get()),
+                Types.NestedField.optional(46, "in_range", Types.BooleanType.get()),
+
+                // Misc
+                Types.NestedField.optional(47, "group_id", Types.StringType.get()),
+                Types.NestedField.optional(48, "loginid", Types.StringType.get()),
+                Types.NestedField.optional(49, "hash", Types.StringType.get()),
+                Types.NestedField.optional(50, "changed", Types.BooleanType.get()),
+                Types.NestedField.optional(51, "nw", Types.DoubleType.get()),
+                Types.NestedField.optional(52, "sales_value", Types.DoubleType.get()),
+
+                // JSON Fields
+                Types.NestedField.optional(53, "extended_attributes", Types.StringType.get()),
+                Types.NestedField.optional(54, "discount_info", Types.StringType.get()),
+                Types.NestedField.optional(55, "order_details", Types.StringType.get()),
+
+                // Ingestion tracking
+                Types.NestedField.required(56, "ingestion_time", Types.TimestampType.withoutZone()));
+    }
+
+    /**
+     * Get the standard partition spec for orders tables.
+     */
+    public static PartitionSpec getOrdersPartitionSpec(Schema schema) {
+        return PartitionSpec.builderFor(schema)
+                .identity("lob")
+                .bucket("id", 16)
+                .year("creation_time")
+                .build();
     }
 }

@@ -10,7 +10,7 @@ iceberg:
   catalog-type: "glue"
   io-impl: "org.apache.iceberg.aws.s3.S3FileIO"
   aws-region: "ap-south-1"
-  database: "iceberg_db_test"
+  database: "iceberg_db_test1"
   table: "ck_orders"
   # Dynamic LOB routing: Add new LOBs here without code changes
   # Each LOB will create a table named ck_orders_{lob}

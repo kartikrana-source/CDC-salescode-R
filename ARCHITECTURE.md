@@ -1,4 +1,4 @@
-# CDC Pipeline Architecture - Dynamic LOB Routing
+# CDC Pipeline Architecture - Dynamic LOB Routing with UPSERT
 
 ## High-Level Flow
 
@@ -10,7 +10,7 @@ flowchart TB
 
     subgraph Flink["⚡ Flink Processing Engine"]
         KS["KafkaSource<br/><i>KafkaSourceBuilder.java</i>"]
-        TR["OrderHeaderTransformer<br/><i>Extracts root LOB</i>"]
+        TR["OrderHeaderTransformer<br/><i>Extracts root LOB, flattens features[]</i>"]
         RT["LobRouterFunction<br/><i>Routes by LOB field</i>"]
         
         subgraph SideOutputs["Side Outputs"]
@@ -19,15 +19,15 @@ flowchart TB
             SO3["unknown<br/>stream"]
         end
         
-        subgraph Mappers["RowData Mappers"]
+        subgraph Mappers["RowData Mappers + UPSERT"]
             M1["OrderHeaderMapper"]
             M2["OrderHeaderMapper"]
         end
     end
 
-    subgraph Sink["📤 Iceberg Sinks"]
-        S1["FlinkSink<br/>ck_orders_niineuat"]
-        S2["FlinkSink<br/>ck_orders_simamyuat"]
+    subgraph Sink["📤 Iceberg Sinks (UPSERT)"]
+        S1["FlinkSink<br/>ck_orders_niineuat<br/><i>equality: id, creation_time</i>"]
+        S2["FlinkSink<br/>ck_orders_simamyuat<br/><i>equality: id, creation_time</i>"]
     end
 
     subgraph Storage["☁️ AWS S3 + Glue"]
@@ -55,17 +55,18 @@ flowchart TB
 
 ---
 
-## Detailed Data Transformation
+## Data Transformation Flow
 
 ```mermaid
 flowchart LR
     subgraph Input["Raw Kafka Message"]
         RAW["
         {
-          <b>lob: 'niineuat'</b> ← Used
+          lob: 'simamyuat'
           features: [{
-            lob: 'simamyuat' ← Ignored
             id: '26885eb2b-1j'
+            creationTime: '2026-01-15'
+            status: 'PENDING'
             billAmount: 615.8
             ...55 fields
           }]
@@ -74,18 +75,19 @@ flowchart LR
     end
 
     subgraph Transform["OrderHeaderTransformer"]
-        T1["Extract root LOB"]
-        T2["Flatten features[]"]
-        T3["Map 55 fields"]
+        T1["Extract<br/>root LOB"]
+        T2["Flatten<br/>features[]"]
+        T3["Map 56<br/>fields"]
     end
 
     subgraph Output["Transformed Record"]
         OUT["
         {
           id: '26885eb2b-1j'
-          <b>lob: 'niineuat'</b>
+          lob: 'simamyuat'
+          creation_time: 2026-01-15
+          status: 'PENDING'
           bill_amount: 615.8
-          ...55 fields
           ingestion_time: now()
         }
         "]
@@ -107,8 +109,8 @@ flowchart TD
     CHECK -->|lob = null/empty| UNKNOWN["OutputTag: unknown_lob"]
     CHECK -->|lob = 'other_value'| UNKNOWN
     
-    TAG1 --> SINK1["Sink to<br/>ck_orders_niineuat"]
-    TAG2 --> SINK2["Sink to<br/>ck_orders_simamyuat"]
+    TAG1 --> SINK1["UPSERT Sink<br/>ck_orders_niineuat"]
+    TAG2 --> SINK2["UPSERT Sink<br/>ck_orders_simamyuat"]
     UNKNOWN --> LOG["⚠️ Log warning<br/>Skip record"]
 
     SINK1 --> S3_1[("S3: .../ck_orders_niineuat/")]
@@ -120,6 +122,36 @@ flowchart TD
     style SINK1 fill:#81c784
     style SINK2 fill:#81c784
 ```
+
+---
+
+## UPSERT Mode Explained
+
+```mermaid
+sequenceDiagram
+    participant Kafka
+    participant Flink
+    participant Iceberg
+
+    Note over Kafka,Iceberg: Day 1 - Order Created
+    Kafka->>Flink: {id: "A", creation_time: "2026-01-15", status: "PENDING"}
+    Flink->>Iceberg: INSERT (id=A, creation_time=2026-01-15, status=PENDING)
+    Iceberg-->>Flink: ✅ Row inserted
+
+    Note over Kafka,Iceberg: Day 3 - Order Updated
+    Kafka->>Flink: {id: "A", creation_time: "2026-01-15", status: "CONFIRMED"}
+    Flink->>Iceberg: UPSERT with equality fields (id, creation_time)
+    Iceberg->>Iceberg: Find existing row, DELETE old
+    Iceberg->>Iceberg: INSERT new row
+    Iceberg-->>Flink: ✅ Row updated (only 1 row exists)
+```
+
+**Equality Fields:** `["id", "creation_time"]`
+
+| Scenario | Result |
+|----------|--------|
+| Same `id` + same `creation_time` | **Updates existing row** |
+| Same `id` + different `creation_time` | Creates new row (different partition) |
 
 ---
 
@@ -137,17 +169,16 @@ flowchart TB
     end
 
     subgraph Transform["📁 Transformer"]
-        OHT["OrderHeaderTransformer.java<br/><i>Extracts root LOB</i><br/><i>Flattens 55 fields</i>"]
+        OHT["OrderHeaderTransformer.java<br/><i>Extracts root LOB</i><br/><i>Flattens 56 fields</i>"]
     end
 
     subgraph Sink["📁 Sink"]
-        DLS["DynamicLobSink.java<br/><i>LOB routing logic</i><br/><i>Side outputs</i>"]
-        ISB["IcebergSinkBuilder.java<br/><i>Static sink (legacy)</i>"]
+        DLS["DynamicLobSink.java<br/><i>LOB routing logic</i><br/><i>UPSERT configuration</i>"]
     end
 
     subgraph Iceberg["📁 Iceberg"]
         IU["IcebergUtil.java<br/><i>TableLoader factory</i>"]
-        CIT["CreateIcebergTables.java<br/><i>Schema definition</i><br/><i>Table creation</i>"]
+        CIT["CreateIcebergTables.java<br/><i>Schema + partitions</i>"]
     end
 
     subgraph Main["📁 Entry Point"]
@@ -191,9 +222,30 @@ sequenceDiagram
     CIT->>S3: CREATE TABLE ck_orders_newlob (if not exists)
     S3-->>CIT: ✅ Table ready
     DLS->>DLS: Create OutputTag for "newlob"
-    DLS->>DLS: Create FlinkSink for ck_orders_newlob
+    DLS->>DLS: Create FlinkSink with UPSERT for ck_orders_newlob
     Note over Job: Ready to process "newlob" data!
 ```
+
+---
+
+## Table Partitioning
+
+```
+ck_orders_{lob}/
+├── id_bucket=0/
+│   ├── creation_time_year=2025/
+│   │   └── *.parquet
+│   └── creation_time_year=2026/
+│       └── *.parquet
+├── id_bucket=1/
+│   └── ...
+└── id_bucket=15/
+```
+
+| Partition | Purpose |
+|-----------|---------|
+| `bucket(id, 16)` | Even data distribution |
+| `year(creation_time)` | Time-range queries + UPSERT equality |
 
 ---
 

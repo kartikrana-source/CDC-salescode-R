@@ -102,7 +102,7 @@ The table `ck_orders_newlob` will be created automatically.
 ### Prerequisites
 ```bash
 # Login to AWS SSO
-aws sso login --profile default
+aws sso login --profile salescode-uat
 ```
 
 ### Build

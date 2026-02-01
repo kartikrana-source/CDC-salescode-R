@@ -101,8 +101,12 @@ public class DynamicLobSink implements Serializable {
 
             TableLoader tableLoader = IcebergUtil.tableLoader(icebergConfig, tableName);
 
+            // UPSERT mode: Updates existing records with same id + creation_time
+            // Requires creation_time to NEVER be null and NEVER change for same order
             FlinkSink.forRowData(rowStream)
                     .tableLoader(tableLoader)
+                    .equalityFieldColumns(java.util.List.of("id", "creation_time"))
+                    .upsert(true)
                     .writeParallelism(1)
                     .append();
 
@@ -208,6 +212,9 @@ public class DynamicLobSink implements Serializable {
 
             // 0. id (required)
             row.setField(0, getString(node, "id"));
+            if (row.getField(0) == "26879eb2b-1j") {
+                System.out.println("here");
+            }
 
             // 1-2. Status Fields
             row.setField(1, getString(node, "active_status"));

@@ -74,7 +74,7 @@
         <dependency>
             <groupId>org.apache.iceberg</groupId>
             <artifactId>iceberg-core</artifactId>
-            <version>1.5.2</version>
+            <version>1.6.1</version>
         </dependency>
 
         <!-- Iceberg AWS S3 integration (works for MinIO with S3A) -->
@@ -96,7 +96,7 @@
         <dependency>
             <groupId>org.apache.iceberg</groupId>
             <artifactId>iceberg-hive-runtime</artifactId>
-            <version>1.5.2</version>
+            <version>1.6.1</version>
         </dependency>
 
         <!-- Hadoop S3A filesystem -->

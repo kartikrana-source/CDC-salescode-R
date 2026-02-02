@@ -1,7 +1,7 @@
 kafka:
   brokers: "164.52.202.184:9092"
   topic: "entity-change-events-1"
-  groupId: "flink-cdc-group-l1222k222Kk2m2lkkkkl-slsl--m;9--000"
+  groupId: "flink-cdc-11909nllldlkkkssnlkdlk081"
   readFromEarliest: false
 
 iceberg:
@@ -10,11 +10,17 @@ iceberg:
   catalog-type: "glue"
   io-impl: "org.apache.iceberg.aws.s3.S3FileIO"
   aws-region: "ap-south-1"
-  database: "iceberg_db_test1"
+  database: "iceberg_db_test"
   table: "ck_orders"
   # Dynamic LOB routing: Add new LOBs here without code changes
   # Each LOB will create a table named ck_orders_{lob}
   known-lobs:
     - niineuat
     - simamyuat
+    - simasguat
+    - cokethaiuat
+    - cokesauat
+    - cokecvuat
+    - ckcoeuat
+
 

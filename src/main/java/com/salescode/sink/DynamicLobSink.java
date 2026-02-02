@@ -296,6 +296,7 @@ public class DynamicLobSink implements Serializable {
 
             // 55. Ingestion time
             row.setField(55, getTimestamp(node, "ingestion_time"));
+            log.info("row: {}", row);
 
             return row;
         }

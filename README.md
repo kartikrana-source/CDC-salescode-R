@@ -1,6 +1,6 @@
 # Kafka → Iceberg CDC Pipeline (Multi-LOB with UPSERT)
 
-A production-ready Flink application that reads order change events from Apache Kafka and writes them to Apache Iceberg tables stored on Amazon S3, using AWS Glue Catalog for metadata management. Features **dynamic LOB-based routing** and **UPSERT mode** for handling updates.
+A  Flink application that reads order change events from Apache Kafka and writes them to Apache Iceberg tables stored on Amazon S3, using AWS Glue Catalog for metadata management. Features **dynamic LOB-based routing** and **UPSERT mode** for handling updates.
 
 ## Architecture
 
